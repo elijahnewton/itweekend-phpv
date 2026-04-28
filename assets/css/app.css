@@ -1,0 +1,91 @@
+/* IT Weekend LMS - Custom Styles */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar-brand {
+    font-size: 1.4rem;
+    letter-spacing: .5px;
+}
+
+/* Course cards */
+.course-card {
+    transition: transform .15s ease, box-shadow .15s ease;
+    border: none;
+    border-radius: .75rem;
+    overflow: hidden;
+}
+
+.course-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.12);
+}
+
+.course-card .card-img-top {
+    height: 180px;
+    object-fit: cover;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.course-card .course-thumb-placeholder {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    font-size: 3rem;
+}
+
+/* Lesson sidebar */
+.lesson-sidebar .list-group-item.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.lesson-sidebar .list-group-item {
+    border-left: 3px solid transparent;
+}
+
+.lesson-sidebar .list-group-item.completed {
+    border-left-color: #198754;
+}
+
+/* Progress */
+.progress-label {
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+/* Hero / Jumbotron */
+.hero {
+    background: linear-gradient(135deg, #0d6efd 0%, #6f42c1 100%);
+    color: #fff;
+    border-radius: 1rem;
+    padding: 3rem 2rem;
+}
+
+/* Dashboard stats */
+.stat-card {
+    border: none;
+    border-radius: .75rem;
+    text-align: center;
+    padding: 1.5rem 1rem;
+}
+
+.stat-card .stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: .5rem;
+}
+
+.stat-card .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Tables */
+.table th {
+    background-color: #f1f3f5;
+    font-weight: 600;
+}
