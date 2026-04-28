@@ -3,36 +3,33 @@ session_start();
 require_once __DIR__ . '/functions.php';
 
 if (is_logged_in()) {
-    redirect('/dashboard.php');
+    redirect('/learn.php');
 }
 
 $error = '';
-$values = ['name' => '', 'email' => '', 'role' => ROLE_STUDENT];
+$values = ['name' => '', 'email' => ''];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $name     = trim($_POST['name'] ?? '');
-    $email    = trim($_POST['email'] ?? '');
+    $email    = trim(strtolower($_POST['email'] ?? ''));
     $password = $_POST['password'] ?? '';
     $confirm  = $_POST['confirm'] ?? '';
-    $role     = $_POST['role'] ?? ROLE_STUDENT;
 
-    $values = compact('name', 'email', 'role');
+    $values = compact('name', 'email');
 
     if ($name === '' || $email === '' || $password === '') {
         $error = 'All fields are required.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid email address.';
-    } elseif (strlen($password) < 6) {
-        $error = 'Password must be at least 6 characters.';
+    } elseif (strlen($password) < 8) {
+        $error = 'Password must be at least 8 characters.';
     } elseif ($password !== $confirm) {
         $error = 'Passwords do not match.';
-    } elseif (!in_array($role, [ROLE_STUDENT, ROLE_INSTRUCTOR], true)) {
-        $role = ROLE_STUDENT;
     }
 
     if ($error === '') {
-        $pdo  = get_db();
+        $pdo   = get_db();
         $check = $pdo->prepare('SELECT id FROM users WHERE email = ?');
         $check->execute([$email]);
         if ($check->fetch()) {
@@ -40,16 +37,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $hash = password_hash($password, PASSWORD_DEFAULT);
             $pdo->prepare('INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)')
-                ->execute([$name, $email, $hash, $role]);
+                ->execute([$name, $email, $hash, ROLE_STUDENT]);
             session_regenerate_id(true);
             $_SESSION['user_id'] = (int)$pdo->lastInsertId();
             flash('Account created! Welcome, ' . $name . '.');
-            redirect('/dashboard.php');
+            redirect('/learn.php');
         }
     }
 }
 
-$page_title = 'Register';
+$page_title = 'Create Account';
 require __DIR__ . '/templates/header.php';
 ?>
 
@@ -78,27 +75,12 @@ require __DIR__ . '/templates/header.php';
                     <div class="mb-3">
                         <label class="form-label fw-semibold" for="password">Password</label>
                         <input type="password" class="form-control" id="password" name="password"
-                               minlength="6" required>
-                        <div class="form-text">At least 6 characters</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" for="confirm">Confirm Password</label>
-                        <input type="password" class="form-control" id="confirm" name="confirm" required>
+                               minlength="8" required>
+                        <div class="form-text">At least 8 characters</div>
                     </div>
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">Register as</label>
-                        <div class="d-flex gap-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="role" id="roleStudent"
-                                       value="student" <?= $values['role'] === ROLE_STUDENT ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="roleStudent">Student</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="role" id="roleInstructor"
-                                       value="instructor" <?= $values['role'] === ROLE_INSTRUCTOR ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="roleInstructor">Instructor</label>
-                            </div>
-                        </div>
+                        <label class="form-label fw-semibold" for="confirm">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm" name="confirm" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100 py-2">Create Account</button>
                 </form>

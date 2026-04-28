@@ -16,10 +16,14 @@ function get_flash(): ?array {
 
 function current_user(): ?array {
     if (!isset($_SESSION['user_id'])) return null;
-    $pdo = get_db();
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE id = ?');
-    $stmt->execute([$_SESSION['user_id']]);
-    return $stmt->fetch() ?: null;
+    static $cache = [];
+    $uid = (int)$_SESSION['user_id'];
+    if (!isset($cache[$uid])) {
+        $stmt = get_db()->prepare('SELECT * FROM users WHERE id = ?');
+        $stmt->execute([$uid]);
+        $cache[$uid] = $stmt->fetch() ?: null;
+    }
+    return $cache[$uid];
 }
 
 function is_logged_in(): bool {
@@ -28,17 +32,18 @@ function is_logged_in(): bool {
 
 function require_login(): void {
     if (!is_logged_in()) {
-        header('Location: /login.php');
+        flash('Please log in to continue.', 'info');
+        header('Location: /login.php?next=' . urlencode($_SERVER['REQUEST_URI']));
         exit;
     }
 }
 
-function require_role(string ...$roles): void {
+function require_admin(): void {
     require_login();
     $user = current_user();
-    if (!$user || !in_array($user['role'], $roles, true)) {
-        flash('Access denied.', 'danger');
-        header('Location: /dashboard.php');
+    if (!$user || $user['role'] !== ROLE_ADMIN) {
+        flash('Admin access required.', 'danger');
+        header('Location: /learn.php');
         exit;
     }
 }
@@ -63,53 +68,94 @@ function verify_csrf(): void {
     $token = $_POST['csrf_token'] ?? '';
     if (!hash_equals(csrf_token(), $token)) {
         flash('Invalid request token.', 'danger');
-        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/dashboard.php'));
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? '/learn.php'));
         exit;
     }
 }
 
-function paginate(PDO $pdo, string $sql, array $params, int $page, int $per_page = 10): array {
-    $count_sql = 'SELECT COUNT(*) FROM (' . $sql . ')';
-    $total = (int)$pdo->prepare($count_sql)->execute($params) ? $pdo->prepare($count_sql)->execute($params) : 0;
-
-    $stmt = $pdo->prepare($count_sql);
-    $stmt->execute($params);
-    $total = (int)$stmt->fetchColumn();
-
-    $offset = ($page - 1) * $per_page;
-    $stmt2 = $pdo->prepare($sql . " LIMIT $per_page OFFSET $offset");
-    $stmt2->execute($params);
-    $rows = $stmt2->fetchAll();
-
-    return [
-        'rows' => $rows,
-        'total' => $total,
-        'pages' => (int)ceil($total / $per_page),
-        'current' => $page,
-    ];
+/**
+ * Get a user's progress for a specific lesson.
+ */
+function get_lesson_progress(int $user_id, int $lesson_id): ?array {
+    $stmt = get_db()->prepare('SELECT * FROM user_progress WHERE user_id = ? AND lesson_id = ?');
+    $stmt->execute([$user_id, $lesson_id]);
+    return $stmt->fetch() ?: null;
 }
 
-function get_course_progress(int $user_id, int $course_id): array {
+/**
+ * Get completion stats for all lessons in a language.
+ */
+function get_language_progress(int $user_id, int $language_id): array {
     $pdo = get_db();
-    $total = (int)$pdo->prepare('SELECT COUNT(*) FROM lessons WHERE course_id = ?')
-        ->execute([$course_id]) ? 0 : 0;
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM lessons WHERE course_id = ?');
-    $stmt->execute([$course_id]);
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM lessons l JOIN topics t ON l.topic_id = t.id WHERE t.language_id = ?'
+    );
+    $stmt->execute([$language_id]);
     $total = (int)$stmt->fetchColumn();
-
-    if ($total === 0) return ['completed' => 0, 'total' => 0, 'pct' => 0];
+    if ($total === 0) return ['total' => 0, 'completed' => 0, 'pct' => 0];
 
     $stmt2 = $pdo->prepare(
-        'SELECT COUNT(*) FROM lesson_progress lp
-         JOIN lessons l ON lp.lesson_id = l.id
-         WHERE lp.user_id = ? AND l.course_id = ?'
+        'SELECT COUNT(*) FROM user_progress up
+         JOIN lessons l ON up.lesson_id = l.id
+         JOIN topics t ON l.topic_id = t.id
+         WHERE up.user_id = ? AND t.language_id = ? AND up.completed_at IS NOT NULL'
     );
-    $stmt2->execute([$user_id, $course_id]);
+    $stmt2->execute([$user_id, $language_id]);
     $completed = (int)$stmt2->fetchColumn();
-
     return [
-        'completed' => $completed,
         'total' => $total,
+        'completed' => $completed,
         'pct' => (int)round($completed / $total * 100),
     ];
 }
+
+/**
+ * Get completion stats for lessons within a topic.
+ */
+function get_topic_progress(int $user_id, int $topic_id): array {
+    $pdo = get_db();
+    $s1 = $pdo->prepare('SELECT COUNT(*) FROM lessons WHERE topic_id = ?');
+    $s1->execute([$topic_id]);
+    $total = (int)$s1->fetchColumn();
+    if ($total === 0) return ['total' => 0, 'completed' => 0, 'pct' => 0];
+
+    $s2 = $pdo->prepare(
+        'SELECT COUNT(*) FROM user_progress up
+         JOIN lessons l ON up.lesson_id = l.id
+         WHERE up.user_id = ? AND l.topic_id = ? AND up.completed_at IS NOT NULL'
+    );
+    $s2->execute([$user_id, $topic_id]);
+    $completed = (int)$s2->fetchColumn();
+    return [
+        'total' => $total,
+        'completed' => $completed,
+        'pct' => (int)round($completed / $total * 100),
+    ];
+}
+
+/**
+ * Mark a lesson as accessed (creates or updates a progress row).
+ */
+function touch_lesson_progress(int $user_id, int $lesson_id): void {
+    $pdo = get_db();
+    $existing = get_lesson_progress($user_id, $lesson_id);
+    if ($existing) {
+        $pdo->prepare(
+            "UPDATE user_progress SET last_accessed_at = datetime('now') WHERE user_id = ? AND lesson_id = ?"
+        )->execute([$user_id, $lesson_id]);
+    } else {
+        $pdo->prepare(
+            'INSERT INTO user_progress (user_id, lesson_id) VALUES (?, ?)'
+        )->execute([$user_id, $lesson_id]);
+    }
+}
+
+/**
+ * Simple slug generator.
+ */
+function slugify(string $text): string {
+    $text = mb_strtolower(trim($text));
+    $text = preg_replace('/[^a-z0-9]+/', '-', $text);
+    return trim($text, '-');
+}
+

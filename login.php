@@ -3,14 +3,14 @@ session_start();
 require_once __DIR__ . '/functions.php';
 
 if (is_logged_in()) {
-    redirect('/dashboard.php');
+    redirect('/learn.php');
 }
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
-    $email    = trim($_POST['email'] ?? '');
+    $email    = trim(strtolower($_POST['email'] ?? ''));
     $password = $_POST['password'] ?? '';
 
     if ($email === '' || $password === '') {
@@ -24,15 +24,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($password, $user['password'])) {
             session_regenerate_id(true);
             $_SESSION['user_id'] = $user['id'];
-            flash('Welcome back, ' . $user['name'] . '!');
-            redirect('/dashboard.php');
+            flash('Welcome back, ' . ($user['name'] ?: $user['email']) . '!');
+            $next = $_GET['next'] ?? '/learn.php';
+            // only allow relative URLs to prevent open redirect
+            if (!str_starts_with($next, '/')) $next = '/learn.php';
+            redirect($next);
         } else {
             $error = 'Invalid email or password.';
         }
     }
 }
 
-$page_title = 'Login';
+$page_title = 'Sign In';
 require __DIR__ . '/templates/header.php';
 ?>
 

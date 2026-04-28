@@ -1,91 +1,108 @@
-/* IT Weekend LMS - Custom Styles */
+/* ── IT Weekend Tutorials Hub ── */
+
+:root {
+    --primary: #4f46e5;
+    --primary-dark: #3730a3;
+}
 
 body {
     background-color: #f8f9fa;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #1e293b;
 }
 
-.navbar-brand {
-    font-size: 1.4rem;
-    letter-spacing: .5px;
+/* Navbar */
+.navbar.bg-primary { background-color: var(--primary) !important; }
+
+/* Hero section */
+.hero-section { min-height: 320px; }
+
+/* Track icons */
+.bg-purple  { background-color: #7c3aed !important; }
+.bg-indigo  { background-color: #4f46e5 !important; }
+.bg-teal    { background-color: #0d9488 !important; }
+
+/* Hover lift effect */
+.hover-lift { transition: transform .15s ease, box-shadow .15s ease; }
+.hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(79,70,229,.15) !important;
 }
 
-/* Course cards */
-.course-card {
-    transition: transform .15s ease, box-shadow .15s ease;
-    border: none;
-    border-radius: .75rem;
-    overflow: hidden;
-}
+/* Course/Language cards */
+.course-card { transition: box-shadow .2s; }
+.course-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.12) !important; }
 
-.course-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.12);
-}
-
-.course-card .card-img-top {
-    height: 180px;
-    object-fit: cover;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.course-card .course-thumb-placeholder {
-    height: 180px;
+.course-thumb-placeholder {
+    height: 140px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
     font-size: 3rem;
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+    color: white;
 }
 
 /* Lesson sidebar */
-.lesson-sidebar .list-group-item.active {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-}
-
-.lesson-sidebar .list-group-item {
-    border-left: 3px solid transparent;
-}
-
 .lesson-sidebar .list-group-item.completed {
-    border-left-color: #198754;
+    background-color: #f0fdf4;
+    color: #166534;
 }
 
-/* Progress */
-.progress-label {
-    font-size: .8rem;
+.lesson-sidebar .list-group-item.active {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Lesson content prose */
+.lesson-content {
+    font-size: 1.05rem;
+    line-height: 1.8;
+}
+
+.lesson-content h1, .lesson-content h2, .lesson-content h3 {
+    margin-top: 1.5rem;
+    margin-bottom: .75rem;
     font-weight: 600;
 }
 
-/* Hero / Jumbotron */
-.hero {
-    background: linear-gradient(135deg, #0d6efd 0%, #6f42c1 100%);
-    color: #fff;
-    border-radius: 1rem;
-    padding: 3rem 2rem;
+.lesson-content code {
+    background: #f1f5f9;
+    padding: .15em .35em;
+    border-radius: .2em;
+    font-size: .9em;
 }
 
-/* Dashboard stats */
-.stat-card {
-    border: none;
-    border-radius: .75rem;
-    text-align: center;
-    padding: 1.5rem 1rem;
+.lesson-content pre code { background: none; padding: 0; }
+
+/* Code blocks via highlight.js */
+pre {
+    border-radius: .5rem;
+    font-size: .9rem;
+    overflow-x: auto;
 }
 
-.stat-card .stat-icon {
-    font-size: 2.5rem;
-    margin-bottom: .5rem;
+/* Quiz styles */
+#quiz-container .option-btn {
+    text-align: left;
+    transition: all .15s;
 }
 
-.stat-card .stat-number {
-    font-size: 2rem;
-    font-weight: 700;
+#quiz-container .option-btn:hover:not(:disabled) {
+    transform: translateX(3px);
 }
 
-/* Tables */
-.table th {
-    background-color: #f1f3f5;
-    font-weight: 600;
+#quiz-container .option-btn.correct  { background: #dcfce7; border-color: #16a34a; color: #14532d; }
+#quiz-container .option-btn.wrong    { background: #fee2e2; border-color: #dc2626; color: #7f1d1d; }
+#quiz-container .option-btn.selected { border-color: var(--primary); background: #eef2ff; }
+
+/* Progress bars */
+.progress-label { font-size: .875rem; color: #64748b; }
+
+/* Admin tables */
+.table th { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+
+/* Responsive tweaks */
+@media (max-width: 576px) {
+    .hero-section { padding: 2rem 1.5rem !important; }
 }
